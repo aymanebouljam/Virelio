@@ -4,7 +4,7 @@
   "description": "Invoice and Expense Tracker",
   "author": "Aymane Bouljam",
   "private": true,
-  "packageManager": "pnpm@11.5.0",
+  "packageManager": "pnpm@11.5.1",
   "engines": {
     "node": ">=24 <26"
   },
@@ -14,8 +14,32 @@
     "build": "pnpm -r build",
     "lint": "pnpm --filter backend lint && pnpm --filter frontend lint",
     "format": "pnpm --filter backend format && pnpm --filter frontend format",
+    "secrets:staged": "gitleaks git --pre-commit --redact --staged --verbose",
     "test": "pnpm --filter backend test && pnpm --filter frontend test:unit",
     "test:e2e": "pnpm --filter backend test:e2e",
-    "type-check": "pnpm --filter frontend type-check"
+    "type-check": "pnpm --filter frontend type-check",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7"
+  },
+  "lint-staged": {
+    "frontend/**/*.{ts,js,css,json,md}": [
+      "pnpm --filter frontend exec oxfmt"
+    ],
+    "frontend/**/*.{ts,js}": [
+      "pnpm --filter frontend exec oxlint --fix"
+    ],
+    "frontend/**/*.vue": [
+      "pnpm --filter frontend exec eslint --fix"
+    ],
+    "backend/**/*.{ts,js}": [
+      "pnpm --filter backend exec prettier --write",
+      "pnpm --filter backend exec eslint --fix"
+    ],
+    "backend/**/*.{json,md}": [
+      "pnpm --filter backend exec prettier --write"
+    ]
   }
 }
