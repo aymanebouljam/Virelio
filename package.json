@@ -1,8 +1,10 @@
 {
   "name": "virelio",
   "version": "0.1.0",
+  "description": "Invoice and Expense Tracker",
+  "author": "Aymane Bouljam",
   "private": true,
-  "packageManager": "pnpm@10.12.1",
+  "packageManager": "pnpm@11.5.0",
   "engines": {
     "node": ">=24 <26"
   },
