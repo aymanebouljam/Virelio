@@ -1,0 +1,19 @@
+{
+  "name": "virelio",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": ">=24 <26"
+  },
+  "scripts": {
+    "dev:backend": "pnpm --filter backend start:dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm --filter backend lint && pnpm --filter frontend lint",
+    "format": "pnpm --filter backend format && pnpm --filter frontend format",
+    "test": "pnpm --filter backend test && pnpm --filter frontend test:unit",
+    "test:e2e": "pnpm --filter backend test:e2e",
+    "type-check": "pnpm --filter frontend type-check"
+  }
+}
