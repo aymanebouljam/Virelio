@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { CreateVendorDto } from './dto/create-vendor.dto';
 import { VendorsService } from './vendors.service';
+import { UpdateVendorDto } from './dto/update-vendor.dto';
 
 @Controller('vendors')
 export class VendorsController {
@@ -13,5 +14,10 @@ export class VendorsController {
   @Post()
   create(@Body() body: CreateVendorDto) {
     return this.vendorsService.create(body);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() body: UpdateVendorDto) {
+    return this.vendorsService.update(id, body);
   }
 }

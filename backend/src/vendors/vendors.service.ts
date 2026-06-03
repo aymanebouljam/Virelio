@@ -1,14 +1,20 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateVendorDto } from './dto/create-vendor.dto';
+import { UpdateVendorDto } from './dto/update-vendor.dto';
 
 @Injectable()
 export class VendorsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.vendor.findMany({
+  async findAll() {
+    return await this.prisma.vendor.findMany({
       where: {
         archivedAt: null,
       },
@@ -39,6 +45,58 @@ export class VendorsService {
             },
           ],
         });
+      }
+      throw error;
+    }
+  }
+
+  async update(id: string, body: UpdateVendorDto) {
+    if (Object.values(body).every((value) => value === undefined)) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: [
+          {
+            field: 'body',
+            constraints: {
+              isNotEmpty: 'Update body cannot be empty',
+            },
+          },
+        ],
+      });
+    }
+    try {
+      return await this.prisma.vendor.update({
+        where: { id },
+        data: body,
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException({
+            message: 'Resource not found',
+            errors: [
+              {
+                field: 'id',
+                constraints: {
+                  exists: 'No vendor with this id exists',
+                },
+              },
+            ],
+          });
+        }
+        if (error.code === 'P2002') {
+          throw new ConflictException({
+            message: 'Validation failed',
+            errors: [
+              {
+                field: 'name',
+                constraints: {
+                  isUnique: 'A vendor with this name already exists',
+                },
+              },
+            ],
+          });
+        }
       }
       throw error;
     }
