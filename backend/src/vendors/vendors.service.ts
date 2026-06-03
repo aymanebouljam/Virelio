@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { CreateVendorDto } from './dto/create-vendor.dto';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CreateVendorDto } from './dto/create-vendor.dto';
 
 @Injectable()
 export class VendorsService {
@@ -16,9 +17,30 @@ export class VendorsService {
       },
     });
   }
-  create(body: CreateVendorDto) {
-    return this.prisma.vendor.create({
-      data: body,
-    });
+
+  async create(body: CreateVendorDto) {
+    try {
+      return await this.prisma.vendor.create({
+        data: body,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException({
+          message: 'Validation failed',
+          errors: [
+            {
+              field: 'name',
+              constraints: {
+                isUnique: 'A vendor with this name already exists',
+              },
+            },
+          ],
+        });
+      }
+      throw error;
+    }
   }
 }
