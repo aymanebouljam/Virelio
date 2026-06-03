@@ -40,3 +40,6 @@ Thumbs.db
 .vscode/
 FEATURE_PLAN.md
 PROGRESS.md
+.agents
+.codex
+AGENT_CONDUCT.md
