@@ -19,6 +19,11 @@
     "secrets:staged": "gitleaks git --pre-commit --redact --staged --verbose",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
+    "prisma:format": "pnpm --filter backend exec prisma format",
+    "prisma:generate": "pnpm --filter backend exec prisma generate",
+    "prisma:validate": "pnpm --filter backend exec prisma validate",
+    "prisma:migrate:dev": "pnpm --filter backend exec prisma migrate dev",
+    "prisma:migrate:deploy": "pnpm --filter backend exec prisma migrate deploy",
     "prepare": "husky"
   },
   "devDependencies": {
