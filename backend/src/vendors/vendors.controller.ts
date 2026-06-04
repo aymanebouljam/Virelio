@@ -11,6 +11,12 @@ export class VendorsController {
   findAll() {
     return this.vendorsService.findAll();
   }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.vendorsService.findOne(id);
+  }
+
   @Post()
   create(@Body() body: CreateVendorDto) {
     return this.vendorsService.create(body);

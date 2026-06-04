@@ -24,6 +24,35 @@ export class VendorsService {
     });
   }
 
+  async findOne(id: string) {
+    try {
+      return await this.prisma.vendor.findUniqueOrThrow({
+        where: {
+          id,
+          archivedAt: null,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException({
+          message: 'Resource not found',
+          errors: [
+            {
+              field: 'id',
+              constraints: {
+                exists: 'No vendor with this id exists',
+              },
+            },
+          ],
+        });
+      }
+      throw error;
+    }
+  }
+
   async create(body: CreateVendorDto) {
     try {
       return await this.prisma.vendor.create({
