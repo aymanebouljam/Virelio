@@ -21,7 +21,10 @@ export class VendorsController {
   create(@Body() body: CreateVendorDto) {
     return this.vendorsService.create(body);
   }
-
+  @Patch(':id/archive')
+  archive(@Param('id') id: string) {
+    return this.vendorsService.archive(id);
+  }
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: UpdateVendorDto) {
     return this.vendorsService.update(id, body);

@@ -14,7 +14,7 @@ export class VendorsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll() {
-    return await this.prisma.vendor.findMany({
+    return this.prisma.vendor.findMany({
       where: {
         archivedAt: null,
       },
@@ -26,10 +26,38 @@ export class VendorsService {
 
   async findOne(id: string) {
     try {
-      return await this.prisma.vendor.findUniqueOrThrow({
+      return await this.prisma.vendor.findFirstOrThrow({
         where: {
           id,
           archivedAt: null,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException({
+          message: 'Resource not found',
+          errors: [
+            {
+              field: 'id',
+              constraints: {
+                exists: 'No active vendor with this id exists',
+              },
+            },
+          ],
+        });
+      }
+      throw error;
+    }
+  }
+
+  async findOneIncludingArchived(id: string) {
+    try {
+      return await this.prisma.vendor.findUniqueOrThrow({
+        where: {
+          id,
         },
       });
     } catch (error) {
@@ -129,5 +157,28 @@ export class VendorsService {
       }
       throw error;
     }
+  }
+
+  async archive(id: string) {
+    const vendor = await this.findOneIncludingArchived(id);
+    if (vendor.archivedAt !== null) {
+      throw new ConflictException({
+        message: 'Resource archived',
+        errors: [
+          {
+            field: 'archivedAt',
+            constraints: {
+              exists: 'This vendor is already archived',
+            },
+          },
+        ],
+      });
+    }
+    return this.prisma.vendor.update({
+      where: { id },
+      data: {
+        archivedAt: new Date(),
+      },
+    });
   }
 }
