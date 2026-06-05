@@ -181,4 +181,27 @@ export class VendorsService {
       },
     });
   }
+
+  async restore(id: string) {
+    const vendor = await this.findOneIncludingArchived(id);
+    if (vendor.archivedAt === null) {
+      throw new ConflictException({
+        message: 'Resource not archived',
+        errors: [
+          {
+            field: 'archivedAt',
+            constraints: {
+              exists: 'This vendor is not archived',
+            },
+          },
+        ],
+      });
+    }
+    return this.prisma.vendor.update({
+      where: { id },
+      data: {
+        archivedAt: null,
+      },
+    });
+  }
 }
