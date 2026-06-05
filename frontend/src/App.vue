@@ -1,14 +1,14 @@
 <template>
   <div class="min-h-screen bg-stone-100 text-stone-900">
     <div class="mx-auto flex min-h-screen max-w-7xl flex-col lg:flex-row">
-      <aside class="w-full border-b border-stone-200 bg-white px-6 py-6 lg:w-72 lg:border-b-0 lg:border-r lg:px-7 lg:py-8">
+      <aside
+        class="w-full border-b border-stone-200 bg-white px-6 py-6 lg:w-72 lg:border-b-0 lg:border-r lg:px-7 lg:py-8"
+      >
         <div>
           <p class="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
             Expense Tracker
           </p>
-          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-stone-900">
-            Virelio
-          </h1>
+          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-stone-900">Virelio</h1>
           <p class="mt-3 max-w-xs text-sm leading-6 text-stone-500">
             Track vendor invoices, receipts, and business spending in one place.
           </p>

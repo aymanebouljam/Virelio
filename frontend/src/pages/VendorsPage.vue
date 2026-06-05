@@ -32,9 +32,7 @@ onMounted(async () => {
 <template>
   <section class="space-y-8">
     <header class="space-y-3">
-      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">
-        Vendors
-      </p>
+      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-stone-400">Vendors</p>
 
       <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -42,7 +40,8 @@ onMounted(async () => {
             Vendor directory
           </h2>
           <p class="mt-2 max-w-2xl text-sm leading-6 text-stone-500 sm:text-base">
-            Manage the businesses that issue your invoices and receipts before linking them to expenses.
+            Manage the businesses that issue your invoices and receipts before linking them to
+            expenses.
           </p>
         </div>
 
@@ -115,7 +114,9 @@ onMounted(async () => {
             </div>
 
             <div class="shrink-0">
-              <span class="inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-stone-500 ring-1 ring-stone-200">
+              <span
+                class="inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-stone-500 ring-1 ring-stone-200"
+              >
                 Active
               </span>
             </div>
