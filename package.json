@@ -31,7 +31,7 @@
     "lint-staged": "^17.0.7"
   },
   "lint-staged": {
-    "frontend/**/*.{ts,js,css,json,md}": [
+    "frontend/**/*.{ts,js,css,json,md,vue}": [
       "pnpm --filter frontend exec oxfmt"
     ],
     "frontend/**/*.{ts,js}": [
