@@ -1,32 +1,101 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { fetchVendors } from '@/lib/api'
-
-type Vendor = {
-  id: string
-  name: string
-  email: string | null
-  phone: string | null
-  website: string | null
-  notes: string | null
-  createdAt: string
-  updatedAt: string
-  archivedAt: string | null
-}
+import {
+  createVendor,
+  fetchVendors,
+  type Vendor,
+  type CreateVendorInput,
+  ApiError,
+} from '@/lib/api'
 
 const vendors = ref<Vendor[]>([])
 const loading = ref(true)
 const error = ref('')
 
-onMounted(async () => {
+const showCreateForm = ref(false)
+const submitting = ref(false)
+const submitError = ref('')
+
+const form = ref<CreateVendorInput>({
+  name: '',
+  email: '',
+  phone: '',
+  website: '',
+  notes: '',
+})
+
+const formErrors = ref<Record<string, string>>({})
+
+function resetForm() {
+  form.value = {
+    name: '',
+    email: '',
+    phone: '',
+    website: '',
+    notes: '',
+  }
+  submitError.value = ''
+  formErrors.value = {}
+}
+
+function openCreateForm() {
+  resetForm()
+  showCreateForm.value = true
+}
+
+function closeCreateForm() {
+  showCreateForm.value = false
+  submitError.value = ''
+  formErrors.value = {}
+}
+
+async function loadVendors() {
   try {
+    error.value = ''
     vendors.value = await fetchVendors()
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Unknown error'
+    error.value = err instanceof ApiError ? err.message : 'Something went wrong'
   } finally {
     loading.value = false
   }
-})
+}
+
+function normalizePayload(input: CreateVendorInput): CreateVendorInput {
+  return {
+    name: input.name.trim(),
+    email: input.email?.trim() || undefined,
+    phone: input.phone?.trim() || undefined,
+    website: input.website?.trim() || undefined,
+    notes: input.notes?.trim() || undefined,
+  }
+}
+
+async function submitCreateVendor() {
+  submitError.value = ''
+  submitting.value = true
+  formErrors.value = {}
+
+  try {
+    const createdVendor = await createVendor(normalizePayload(form.value))
+    vendors.value = [createdVendor, ...vendors.value]
+    closeCreateForm()
+    resetForm()
+  } catch (err) {
+    if (err instanceof ApiError) {
+      if (err.content) {
+        formErrors.value = err.content
+        return
+      }
+      submitError.value = err.message
+    } else {
+      submitError.value = 'Something went wrong'
+    }
+  } finally {
+    submitting.value = false
+  }
+}
+
+onMounted(loadVendors)
 </script>
 
 <template>
@@ -45,14 +114,163 @@ onMounted(async () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          class="inline-flex items-center justify-center rounded-2xl bg-stone-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-stone-700"
-        >
-          Add vendor
-        </button>
+        <div v-if="!showCreateForm">
+          <button
+            type="button"
+            class="inline-flex items-center justify-center rounded-2xl bg-stone-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-stone-700"
+            @click="openCreateForm"
+          >
+            Add vendor
+          </button>
+        </div>
       </div>
     </header>
+    <section
+      v-if="showCreateForm"
+      class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm"
+    >
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-semibold tracking-tight text-stone-900">Create vendor</h3>
+          <p class="mt-1 text-sm text-stone-500">
+            Add a vendor before linking expenses and uploaded proofs.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="text-sm font-medium text-stone-500 transition hover:text-stone-900"
+          @click="closeCreateForm"
+        >
+          Cancel
+        </button>
+      </div>
+
+      <form class="mt-6 space-y-5" @submit.prevent="submitCreateVendor">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Name</span>
+            <input
+              v-model="form.name"
+              type="text"
+              maxlength="120"
+              required
+              :class="[
+                'w-full rounded-2xl border bg-white px-4 py-3 text-sm text-stone-900 outline-none transition',
+                formErrors.name
+                  ? 'border-red-300 focus:border-red-500'
+                  : 'border-stone-300 focus:border-stone-900',
+              ]"
+            />
+
+            <p v-if="formErrors.name" class="ml-3 mt-2 text-sm text-red-600">
+              {{ formErrors.name }}
+            </p>
+          </label>
+
+          <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Email</span>
+            <input
+              v-model="form.email"
+              type="email"
+              maxlength="120"
+              :class="[
+                'w-full rounded-2xl border bg-white px-4 py-3 text-sm text-stone-900 outline-none transition',
+                formErrors.email
+                  ? 'border-red-300 focus:border-red-500'
+                  : 'border-stone-300 focus:border-stone-900',
+              ]"
+            />
+
+            <p v-if="formErrors.email" class="ml-3 mt-2 text-sm text-red-600">
+              {{ formErrors.email }}
+            </p>
+          </label>
+
+          <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Phone</span>
+            <input
+              v-model="form.phone"
+              type="text"
+              maxlength="40"
+              :class="[
+                'w-full rounded-2xl border bg-white px-4 py-3 text-sm text-stone-900 outline-none transition',
+                formErrors.phone
+                  ? 'border-red-300 focus:border-red-500'
+                  : 'border-stone-300 focus:border-stone-900',
+              ]"
+            />
+
+            <p v-if="formErrors.phone" class="ml-3 mt-2 text-sm text-red-600">
+              {{ formErrors.phone }}
+            </p>
+          </label>
+
+          <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Website</span>
+            <input
+              v-model="form.website"
+              type="url"
+              maxlength="120"
+              :class="[
+                'w-full rounded-2xl border bg-white px-4 py-3 text-sm text-stone-900 outline-none transition',
+                formErrors.website
+                  ? 'border-red-300 focus:border-red-500'
+                  : 'border-stone-300 focus:border-stone-900',
+              ]"
+            />
+
+            <p v-if="formErrors.website" class="ml-3 mt-2 text-sm text-red-600">
+              {{ formErrors.website }}
+            </p>
+          </label>
+        </div>
+
+        <label class="block">
+          <span class="mb-2 block text-sm font-medium text-stone-700">Notes</span>
+          <textarea
+            v-model="form.notes"
+            rows="4"
+            maxlength="1000"
+            :class="[
+              'w-full rounded-2xl border bg-white px-4 py-3 text-sm text-stone-900 outline-none transition',
+              formErrors.notes
+                ? 'border-red-300 focus:border-red-500'
+                : 'border-stone-300 focus:border-stone-900',
+            ]"
+          />
+
+          <p v-if="formErrors.notes" class="ml-3 mt-2 text-sm text-red-600">
+            {{ formErrors.notes }}
+          </p>
+        </label>
+
+        <div
+          v-if="submitError"
+          class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {{ submitError }}
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            class="rounded-2xl px-4 py-3 text-sm font-medium text-stone-600 transition hover:bg-stone-100 hover:text-stone-900"
+            @click="closeCreateForm"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            :disabled="submitting"
+            class="inline-flex items-center justify-center rounded-2xl bg-stone-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-stone-700 disabled:cursor-not-allowed disabled:bg-stone-400"
+          >
+            {{ submitting ? 'Saving...' : 'Save vendor' }}
+          </button>
+        </div>
+      </form>
+    </section>
 
     <section class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
       <div v-if="loading" class="space-y-3">
