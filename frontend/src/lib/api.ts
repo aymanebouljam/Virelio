@@ -1,25 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
-export type Vendor = {
-  id: string
-  name: string
-  email: string | null
-  phone: string | null
-  website: string | null
-  notes: string | null
-  createdAt: string
-  updatedAt: string
-  archivedAt: string | null
-}
-
-export type CreateVendorInput = {
-  name: string
-  email?: string
-  phone?: string
-  website?: string
-  notes?: string
-}
-
 type FieldError = {
   field: string
   constraints?: Record<string, string>
@@ -38,6 +18,22 @@ export class ApiError extends Error {
     super(message)
     this.name = 'Api Error'
   }
+}
+
+function getApiBaseUrl() {
+  if (!API_BASE_URL) {
+    throw new Error('VITE_API_BASE_URL is not configured')
+  }
+
+  return API_BASE_URL
+}
+
+async function validateResponse(response: Response) {
+  const body: unknown = await response.json().catch(() => null)
+  if (body === null || typeof body !== 'object') {
+    throw new Error('Response body is not a valid JSON object or array')
+  }
+  return body
 }
 
 function parseError(body: ApiErrorResponse) {
@@ -65,44 +61,50 @@ function parseError(body: ApiErrorResponse) {
   }
 }
 
-function getApiBaseUrl() {
-  if (!API_BASE_URL) {
-    throw new Error('VITE_API_BASE_URL is not configured')
+type FetchConfig = {
+  method: string
+  headers: {
+    Accept: string
+    'Content-Type'?: string
   }
-
-  return API_BASE_URL
+  body?: string
 }
 
-async function validateResponse(response: Response) {
-  const body: unknown = await response.json().catch(() => null)
-  if (body === null || typeof body !== 'object') {
-    throw new Error('Response body is not a valid JSON object or array')
+export async function apiConfig(
+  path: string = '',
+  method: string = 'GET',
+  input: Record<string, unknown> | undefined = undefined,
+  param: string = '',
+  segment: string = '',
+  query: string = '',
+) {
+  let endpoint = `${path}`
+  if (param) {
+    endpoint += `/${param}`
   }
-  return body
-}
-
-export async function fetchVendors() {
-  const response = await fetch(`${getApiBaseUrl()}/vendors`)
-  const body = await validateResponse(response)
-  if (!response.ok) {
-    parseError(body)
+  if (segment) {
+    endpoint += `/${segment}`
   }
-  return body as Vendor[]
-}
+  if (query) {
+    endpoint += `/?${query}`
+  }
 
-export async function createVendor(input: CreateVendorInput) {
-  const response = await fetch(`${getApiBaseUrl()}/vendors`, {
-    method: 'POST',
+  const config: FetchConfig = {
+    method,
     headers: {
-      'Content-Type': 'application/json',
       Accept: 'application/json',
     },
-    body: JSON.stringify(input),
-  })
+  }
 
+  if (['POST', 'PUT', 'PATCH'].includes(method)) {
+    config.headers['Content-Type'] = 'application/json'
+    config.body = JSON.stringify(input)
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}/${endpoint}`, config)
   const body = await validateResponse(response)
   if (!response.ok) {
     parseError(body)
   }
-  return body as Vendor
+  return body
 }

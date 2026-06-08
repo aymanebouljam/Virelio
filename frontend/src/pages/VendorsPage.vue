@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import {
-  createVendor,
-  fetchVendors,
-  type Vendor,
-  type CreateVendorInput,
-  ApiError,
-} from '@/lib/api'
+import { createVendor, fetchVendors, type Vendor, type CreateVendorInput } from '@/lib/vendors/api'
+import { ApiError } from '@/lib/api'
 
 const vendors = ref<Vendor[]>([])
 const loading = ref(true)
