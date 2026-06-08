@@ -38,8 +38,7 @@ test-results/
 Thumbs.db
 .idea/
 .vscode/
-FEATURE_PLAN.md
+PLAN.md
 PROGRESS.md
 .agents
 .codex
-AGENT_CONDUCT.md

@@ -1,0 +1,97 @@
+import { PrismaClient } from '../../generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import 'dotenv/config';
+
+const adapter = new PrismaPg({
+  connectionString: process.env['DATABASE_URL'],
+});
+const prisma = new PrismaClient({ adapter });
+
+const vendors = [
+  {
+    name: 'Atlas Office Supplies',
+    email: 'contact@atlasoffice.com',
+    phone: '+212600000001',
+    website: 'https://atlasoffice.com',
+    notes: 'Office supplies and stationery vendor.',
+  },
+  {
+    name: 'Nova Tech Solutions',
+    email: 'hello@novatech.ma',
+    phone: '+212600000002',
+    website: 'https://novatech.ma',
+    notes: 'IT equipment and software services.',
+  },
+  {
+    name: 'Green Market Foods',
+    email: 'orders@greenmarketfoods.com',
+    phone: '+212600000003',
+    website: 'https://greenmarketfoods.com',
+    notes: 'Food and grocery supplier.',
+  },
+  {
+    name: 'Bright Print Studio',
+    email: 'sales@brightprint.studio',
+    phone: '+212600000004',
+    website: 'https://brightprint.studio',
+    notes: 'Printing and branding services.',
+  },
+  {
+    name: 'Urban Delivery Co',
+    email: 'support@urbandelivery.co',
+    phone: '+212600000005',
+    website: 'https://urbandelivery.co',
+    notes: 'Courier and local delivery service.',
+  },
+  {
+    name: 'CloudPoint Hosting',
+    email: 'billing@cloudpoint.host',
+    phone: '+212600000006',
+    website: 'https://cloudpoint.host',
+    notes: 'Hosting and cloud infrastructure provider.',
+  },
+  {
+    name: 'PixelCraft Agency',
+    email: 'team@pixelcraft.agency',
+    phone: '+212600000007',
+    website: 'https://pixelcraft.agency',
+    notes: 'Design, marketing, and creative services.',
+  },
+  {
+    name: 'SafeBuild Maintenance',
+    email: 'info@safebuild.ma',
+    phone: '+212600000008',
+    website: 'https://safebuild.ma',
+    notes: 'Repairs, maintenance, and facility services.',
+  },
+  {
+    name: 'Metro Fuel Services',
+    email: 'accounts@metrofuel.com',
+    phone: '+212600000009',
+    website: 'https://metrofuel.com',
+    notes: 'Fuel and vehicle-related expenses.',
+  },
+  {
+    name: 'PureClean Supplies',
+    email: 'contact@purecleansupplies.com',
+    phone: '+212600000010',
+    website: 'https://purecleansupplies.com',
+    notes: 'Cleaning products and hygiene supplies.',
+  },
+];
+
+async function main() {
+  await prisma.vendor.createMany({
+    data: vendors,
+    skipDuplicates: true,
+  });
+}
+
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
