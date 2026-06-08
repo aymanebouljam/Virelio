@@ -21,9 +21,9 @@ export type CreateVendorInput = {
 }
 
 export async function fetchVendors() {
-  return (await apiConfig('vendors')) as Vendor[]
+  return (await apiConfig({ path: 'vendors' })) as Vendor[]
 }
 
 export async function createVendor(input: CreateVendorInput) {
-  return (await apiConfig('vendors', 'POST', input)) as Vendor
+  return (await apiConfig({ path: 'vendors', method: 'POST', input })) as Vendor
 }

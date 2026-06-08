@@ -1,5 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
+// Types
 type FieldError = {
   field: string
   constraints?: Record<string, string>
@@ -10,13 +11,15 @@ type ApiErrorResponse = {
   errors?: FieldError[]
 }
 
+// Helpers
+
 export class ApiError extends Error {
   constructor(
     message: string,
     public readonly content: Record<string, string> | null = null,
   ) {
     super(message)
-    this.name = 'Api Error'
+    this.name = 'ApiError'
   }
 }
 
@@ -25,10 +28,13 @@ function getApiBaseUrl() {
     throw new Error('VITE_API_BASE_URL is not configured')
   }
 
-  return API_BASE_URL
+  return API_BASE_URL.replace(/\/$/, '')
 }
 
 async function validateResponse(response: Response) {
+  if (response.status === 204) {
+    return null
+  }
   const body: unknown = await response.json().catch(() => null)
   if (body === null || typeof body !== 'object') {
     throw new Error('Response body is not a valid JSON object or array')
@@ -36,9 +42,10 @@ async function validateResponse(response: Response) {
   return body
 }
 
-function parseError(body: ApiErrorResponse) {
+function parseError(body: ApiErrorResponse | null) {
+  let message = 'Something went wrong'
+  if (body === null) throw new ApiError(message)
   if (!Array.isArray(body.errors) || body.errors.length === 0) {
-    let message = 'Something went wrong'
     if (typeof body.message === 'string' && body.message.length > 0) {
       message = body.message
     }
@@ -61,8 +68,20 @@ function parseError(body: ApiErrorResponse) {
   }
 }
 
+type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+const METHODS_WITH_BODY: HttpMethod[] = ['POST', 'PUT', 'PATCH']
+
+type ApiConfigOptions = {
+  path?: string
+  method?: HttpMethod
+  input?: Record<string, unknown>
+  id?: string
+  action?: string
+  queryParams?: Record<string, string | number | boolean>
+}
+
 type FetchConfig = {
-  method: string
+  method: HttpMethod
   headers: {
     Accept: string
     'Content-Type'?: string
@@ -70,23 +89,25 @@ type FetchConfig = {
   body?: string
 }
 
-export async function apiConfig(
-  path: string = '',
-  method: string = 'GET',
-  input: Record<string, unknown> | undefined = undefined,
-  param: string = '',
-  segment: string = '',
-  query: string = '',
-) {
-  let endpoint = `${path}`
-  if (param) {
-    endpoint += `/${param}`
+export async function apiConfig({
+  path = '',
+  method = 'GET',
+  input,
+  id,
+  action,
+  queryParams,
+}: ApiConfigOptions = {}) {
+  const url = new URL(`${getApiBaseUrl()}/${path.replace(/^\/+/, '')}`)
+  if (id !== undefined) {
+    url.pathname += `/${encodeURIComponent(id)}`
   }
-  if (segment) {
-    endpoint += `/${segment}`
+  if (action !== undefined) {
+    url.pathname += `/${encodeURIComponent(action)}`
   }
-  if (query) {
-    endpoint += `/?${query}`
+  if (queryParams !== undefined) {
+    for (const [key, value] of Object.entries(queryParams)) {
+      url.searchParams.set(key, String(value))
+    }
   }
 
   const config: FetchConfig = {
@@ -96,12 +117,12 @@ export async function apiConfig(
     },
   }
 
-  if (['POST', 'PUT', 'PATCH'].includes(method)) {
+  if (input !== undefined && METHODS_WITH_BODY.includes(method)) {
     config.headers['Content-Type'] = 'application/json'
     config.body = JSON.stringify(input)
   }
 
-  const response = await fetch(`${getApiBaseUrl()}/${endpoint}`, config)
+  const response = await fetch(url, config)
   const body = await validateResponse(response)
   if (!response.ok) {
     parseError(body)
