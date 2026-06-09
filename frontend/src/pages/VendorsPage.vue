@@ -6,12 +6,14 @@ import {
   updateVendor,
   type Vendor,
   type CreateVendorInput,
+  archiveVendor,
+  type UpdateVendorInput,
 } from '@/lib/vendors/api'
 
 import { ApiError } from '@/lib/api'
 
 const vendors = ref<Vendor[]>([])
-const vendor = ref<CreateVendorInput>({
+const vendor = ref<UpdateVendorInput>({
   name: '',
   email: '',
   phone: '',
@@ -25,6 +27,7 @@ const showVendorForm = ref(false)
 const editingVendorId = ref<string | null>(null)
 const submitting = ref(false)
 const submitError = ref('')
+const actionError = ref('')
 
 const form = ref<CreateVendorInput>({
   name: '',
@@ -54,6 +57,7 @@ function resetForm() {
   submitError.value = ''
   formErrors.value = {}
   editingVendorId.value = null
+  actionError.value = ''
 }
 
 function openCreateForm() {
@@ -103,6 +107,18 @@ function normalizePayload(input: CreateVendorInput): CreateVendorInput {
   }
 }
 
+function normalizeError(err: unknown) {
+  if (err instanceof ApiError) {
+    if (err.content) {
+      formErrors.value = err.content
+      return
+    }
+    submitError.value = err.message
+  } else {
+    submitError.value = 'Something went wrong'
+  }
+}
+
 function isSameVendorForm(form: CreateVendorInput, vendor: CreateVendorInput) {
   return (
     form.name === vendor.name &&
@@ -132,17 +148,21 @@ async function submitVendorForm() {
 
     closeVendorForm()
   } catch (err) {
-    if (err instanceof ApiError) {
-      if (err.content) {
-        formErrors.value = err.content
-        return
-      }
-      submitError.value = err.message
-    } else {
-      submitError.value = 'Something went wrong'
-    }
+    normalizeError(err)
   } finally {
     submitting.value = false
+  }
+}
+
+async function archive({ id }: Vendor) {
+  actionError.value = ''
+  try {
+    if (confirm('Are you sure you want to archive this vendor ?')) {
+      const archivedVendor = await archiveVendor(id)
+      vendors.value = vendors.value.filter((vendor: Vendor) => vendor.id !== archivedVendor.id)
+    }
+  } catch (err) {
+    actionError.value = err instanceof ApiError ? err.message : 'Archiving vendor failed'
   }
 }
 
@@ -174,6 +194,12 @@ onMounted(loadVendors)
             Add vendor
           </button>
         </div>
+      </div>
+      <div
+        v-if="actionError"
+        class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      >
+        {{ actionError }}
       </div>
     </header>
     <section
@@ -384,6 +410,13 @@ onMounted(loadVendors)
                 @click="openEditForm(vendor)"
               >
                 Edit
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-600 transition hover:border-stone-300 hover:text-stone-900"
+                @click="archive(vendor)"
+              >
+                Archive
               </button>
 
               <span
