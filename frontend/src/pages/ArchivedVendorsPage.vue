@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { fetchArchivedVendors, restoreVendor, type Vendor } from '@/lib/vendors/api'
+import { fetchArchivedVendors, restoreVendor } from '@/lib/vendors/api'
 import { ApiError } from '@/lib/api'
+import type { Vendor } from '@/lib/vendors/schema'
 
 const vendors = ref<Vendor[]>([])
 const loading = ref(true)
