@@ -377,14 +377,21 @@ onMounted(loadVendors)
               </p>
             </div>
 
-            <div class="shrink-0">
+            <div class="flex shrink-0 items-center gap-3">
+              <button
+                type="button"
+                class="inline-flex items-center rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-600 transition hover:border-stone-300 hover:text-stone-900"
+                @click="openEditForm(vendor)"
+              >
+                Edit
+              </button>
+
               <span
-                class="inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-stone-500 ring-1 ring-stone-200"
+                class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-stone-500 ring-1 ring-stone-200"
               >
                 Active
               </span>
             </div>
-            <button @click="openEditForm(vendor)">Edit</button>
           </div>
         </article>
       </div>
