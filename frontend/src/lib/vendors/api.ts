@@ -42,3 +42,11 @@ export async function updateVendor(id: string, input: UpdateVendorInput) {
 export async function archiveVendor(id: string) {
   return (await apiConfig({ path: 'vendors', method: 'PATCH', id, action: 'archive' })) as Vendor
 }
+
+export async function fetchArchivedVendors() {
+  return (await apiConfig({ path: 'vendors', action: 'archived' })) as Vendor[]
+}
+
+export async function restoreVendor(id: string) {
+  return (await apiConfig({ path: 'vendors', method: 'PATCH', id, action: 'restore' })) as Vendor
+}

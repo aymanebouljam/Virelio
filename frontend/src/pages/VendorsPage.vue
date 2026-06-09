@@ -157,7 +157,7 @@ async function submitVendorForm() {
 async function archive({ id }: Vendor) {
   actionError.value = ''
   try {
-    if (confirm('Are you sure you want to archive this vendor ?')) {
+    if (confirm('Are you sure you want to archive this vendor?')) {
       const archivedVendor = await archiveVendor(id)
       vendors.value = vendors.value.filter((vendor: Vendor) => vendor.id !== archivedVendor.id)
     }
