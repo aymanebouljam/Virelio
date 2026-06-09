@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import {
-  createVendor,
-  fetchVendors,
-  updateVendor,
-  type Vendor,
-  type CreateVendorInput,
-  archiveVendor,
-  type UpdateVendorInput,
-} from '@/lib/vendors/api'
+import { createVendor, fetchVendors, updateVendor, archiveVendor } from '@/lib/vendors/api'
 
 import { ApiError } from '@/lib/api'
+import {
+  vendorFormSchema,
+  vendorSchema,
+  type Vendor,
+  type VendorFormValues,
+} from '@/lib/vendors/schema'
+import { ZodError } from 'zod'
+import { mapZodErrors } from '@/lib/zod'
 
 const vendors = ref<Vendor[]>([])
-const vendor = ref<UpdateVendorInput>({
+const vendor = ref<VendorFormValues>({
   name: '',
   email: '',
   phone: '',
   website: '',
   notes: '',
 })
+
 const loading = ref(true)
 const error = ref('')
 
@@ -29,7 +30,7 @@ const submitting = ref(false)
 const submitError = ref('')
 const actionError = ref('')
 
-const form = ref<CreateVendorInput>({
+const form = ref<VendorFormValues>({
   name: '',
   email: '',
   phone: '',
@@ -66,15 +67,15 @@ function openCreateForm() {
 }
 
 function openEditForm(vendorData: Vendor) {
-  const cleanData = {
+  const normalized = {
     name: vendorData.name,
     email: vendorData.email ?? '',
     phone: vendorData.phone ?? '',
     website: vendorData.website ?? '',
     notes: vendorData.notes ?? '',
   }
-  vendor.value = { ...cleanData }
-  form.value = { ...cleanData }
+  vendor.value = { ...normalized }
+  form.value = { ...normalized }
   submitError.value = ''
   formErrors.value = {}
   editingVendorId.value = vendorData.id
@@ -84,7 +85,15 @@ function openEditForm(vendorData: Vendor) {
 async function loadVendors() {
   try {
     error.value = ''
-    vendors.value = await fetchVendors()
+    const validatedVendors = []
+    for (const vendor of await fetchVendors()) {
+      const result = vendorSchema.safeParse(vendor)
+      if (!result.success) {
+        continue
+      }
+      validatedVendors.push(result.data as Vendor)
+    }
+    vendors.value = validatedVendors
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Something went wrong'
   } finally {
@@ -97,13 +106,13 @@ function closeVendorForm() {
   resetForm()
 }
 
-function normalizePayload(input: CreateVendorInput): CreateVendorInput {
+function normalizePayload(input: VendorFormValues): VendorFormValues {
   return {
-    name: input.name.trim(),
-    email: input.email?.trim() || undefined,
-    phone: input.phone?.trim() || undefined,
-    website: input.website?.trim() || undefined,
-    notes: input.notes?.trim() || undefined,
+    name: input.name,
+    email: input.email || undefined,
+    phone: input.phone || undefined,
+    website: input.website || undefined,
+    notes: input.notes || undefined,
   }
 }
 
@@ -114,12 +123,16 @@ function normalizeError(err: unknown) {
       return
     }
     submitError.value = err.message
-  } else {
-    submitError.value = 'Something went wrong'
+    return
   }
+  if (err instanceof ZodError) {
+    formErrors.value = mapZodErrors(err.issues)
+    return
+  }
+  submitError.value = 'Something went wrong'
 }
 
-function isSameVendorForm(form: CreateVendorInput, vendor: CreateVendorInput) {
+function isSameVendorForm(form: VendorFormValues, vendor: VendorFormValues) {
   return (
     form.name === vendor.name &&
     (form.email ?? '') === (vendor.email ?? '') &&
@@ -133,14 +146,28 @@ async function submitVendorForm() {
   submitError.value = ''
   submitting.value = true
   formErrors.value = {}
+  actionError.value = ''
 
   try {
-    const payload = normalizePayload(form.value)
+    const validation = vendorFormSchema.parse(form.value)
+    const payload = normalizePayload(validation)
     if (!editingVendorId.value) {
-      const createdVendor = await createVendor(payload)
-      vendors.value = [createdVendor, ...vendors.value]
-    } else if (!isSameVendorForm(form.value, vendor.value)) {
-      const updatedVendor = await updateVendor(editingVendorId.value, payload)
+      const result = vendorSchema.safeParse(await createVendor(payload))
+      if (!result.success) {
+        closeVendorForm()
+        actionError.value = 'Failed to fetch created vendor'
+        return
+      }
+      vendors.value = [result.data as Vendor, ...vendors.value]
+    } else if (!isSameVendorForm(payload, vendor.value)) {
+      const result = vendorSchema.safeParse(await updateVendor(editingVendorId.value, payload))
+      if (!result.success) {
+        closeVendorForm()
+        actionError.value = 'Failed to fetch updated vendor'
+        return
+      }
+
+      const updatedVendor = result.data as Vendor
       vendors.value = vendors.value.map((vendor) =>
         vendor.id === updatedVendor.id ? updatedVendor : vendor,
       )
@@ -158,7 +185,7 @@ async function archive({ id }: Vendor) {
   actionError.value = ''
   try {
     if (confirm('Are you sure you want to archive this vendor?')) {
-      const archivedVendor = await archiveVendor(id)
+      const archivedVendor = vendorSchema.parse(await archiveVendor(id))
       vendors.value = vendors.value.filter((vendor: Vendor) => vendor.id !== archivedVendor.id)
     }
   } catch (err) {
@@ -226,7 +253,6 @@ onMounted(loadVendors)
               v-model="form.name"
               type="text"
               maxlength="120"
-              required
               :class="[
                 'w-full rounded-2xl border bg-white px-4 py-3 text-sm text-stone-900 outline-none transition',
                 formErrors.name
@@ -244,7 +270,7 @@ onMounted(loadVendors)
             <span class="mb-2 block text-sm font-medium text-stone-700">Email</span>
             <input
               v-model="form.email"
-              type="email"
+              type="text"
               maxlength="120"
               :class="[
                 'w-full rounded-2xl border bg-white px-4 py-3 text-sm text-stone-900 outline-none transition',
@@ -282,7 +308,7 @@ onMounted(loadVendors)
             <span class="mb-2 block text-sm font-medium text-stone-700">Website</span>
             <input
               v-model="form.website"
-              type="url"
+              type="text"
               maxlength="120"
               :class="[
                 'w-full rounded-2xl border bg-white px-4 py-3 text-sm text-stone-900 outline-none transition',
