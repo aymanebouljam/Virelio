@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { fetchArchivedVendors, restoreVendor } from '@/lib/vendors/api'
 import { ApiError } from '@/lib/api'
-import type { Vendor } from '@/lib/vendors/schema'
+import { vendorSchema, type Vendor } from '@/lib/vendors/schema'
 
 const vendors = ref<Vendor[]>([])
 const loading = ref(true)
@@ -13,7 +13,16 @@ const restoringId = ref<string | null>(null)
 async function loadArchivedVendors() {
   try {
     error.value = ''
-    vendors.value = await fetchArchivedVendors()
+    const validatedVendors = []
+    for (const vendor of await fetchArchivedVendors()) {
+      const result = vendorSchema.safeParse(vendor)
+      if (!result.success) {
+        continue
+      }
+      validatedVendors.push(result.data as Vendor)
+    }
+
+    vendors.value = validatedVendors
   } catch (err) {
     error.value = err instanceof ApiError ? err.message : 'Something went wrong'
   } finally {
@@ -27,8 +36,14 @@ async function restore(vendor: Vendor) {
 
   try {
     if (confirm('Are you sure you want to restore this vendor?')) {
-      const restoredVendor = await restoreVendor(vendor.id)
-      vendors.value = vendors.value.filter((item) => item.id !== restoredVendor.id)
+      const result = vendorSchema.safeParse(await restoreVendor(vendor.id))
+      if (!result.success) {
+        actionError.value = 'Failed to fetch restored vendor'
+        return
+      }
+
+      const updatedVendor = result.data as Vendor
+      vendors.value = vendors.value.filter((vendor) => vendor.id !== updatedVendor.id)
     }
   } catch (err) {
     actionError.value = err instanceof ApiError ? err.message : 'Restoring vendor failed'
