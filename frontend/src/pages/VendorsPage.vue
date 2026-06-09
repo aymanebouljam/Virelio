@@ -1,13 +1,28 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { createVendor, fetchVendors, type Vendor, type CreateVendorInput } from '@/lib/vendors/api'
+import {
+  createVendor,
+  fetchVendors,
+  updateVendor,
+  type Vendor,
+  type CreateVendorInput,
+} from '@/lib/vendors/api'
+
 import { ApiError } from '@/lib/api'
 
 const vendors = ref<Vendor[]>([])
+const vendor = ref<CreateVendorInput>({
+  name: '',
+  email: '',
+  phone: '',
+  website: '',
+  notes: '',
+})
 const loading = ref(true)
 const error = ref('')
 
-const showCreateForm = ref(false)
+const showVendorForm = ref(false)
+const editingVendorId = ref<string | null>(null)
 const submitting = ref(false)
 const submitError = ref('')
 
@@ -29,19 +44,37 @@ function resetForm() {
     website: '',
     notes: '',
   }
+  vendor.value = {
+    name: '',
+    email: '',
+    phone: '',
+    website: '',
+    notes: '',
+  }
   submitError.value = ''
   formErrors.value = {}
+  editingVendorId.value = null
 }
 
 function openCreateForm() {
   resetForm()
-  showCreateForm.value = true
+  showVendorForm.value = true
 }
 
-function closeCreateForm() {
-  showCreateForm.value = false
+function openEditForm(vendorData: Vendor) {
+  const cleanData = {
+    name: vendorData.name,
+    email: vendorData.email ?? '',
+    phone: vendorData.phone ?? '',
+    website: vendorData.website ?? '',
+    notes: vendorData.notes ?? '',
+  }
+  vendor.value = { ...cleanData }
+  form.value = { ...cleanData }
   submitError.value = ''
   formErrors.value = {}
+  editingVendorId.value = vendorData.id
+  showVendorForm.value = true
 }
 
 async function loadVendors() {
@@ -55,6 +88,11 @@ async function loadVendors() {
   }
 }
 
+function closeVendorForm() {
+  showVendorForm.value = false
+  resetForm()
+}
+
 function normalizePayload(input: CreateVendorInput): CreateVendorInput {
   return {
     name: input.name.trim(),
@@ -65,16 +103,34 @@ function normalizePayload(input: CreateVendorInput): CreateVendorInput {
   }
 }
 
-async function submitCreateVendor() {
+function isSameVendorForm(form: CreateVendorInput, vendor: CreateVendorInput) {
+  return (
+    form.name === vendor.name &&
+    (form.email ?? '') === (vendor.email ?? '') &&
+    (form.phone ?? '') === (vendor.phone ?? '') &&
+    (form.website ?? '') === (vendor.website ?? '') &&
+    (form.notes ?? '') === (vendor.notes ?? '')
+  )
+}
+
+async function submitVendorForm() {
   submitError.value = ''
   submitting.value = true
   formErrors.value = {}
 
   try {
-    const createdVendor = await createVendor(normalizePayload(form.value))
-    vendors.value = [createdVendor, ...vendors.value]
-    closeCreateForm()
-    resetForm()
+    const payload = normalizePayload(form.value)
+    if (!editingVendorId.value) {
+      const createdVendor = await createVendor(payload)
+      vendors.value = [createdVendor, ...vendors.value]
+    } else if (!isSameVendorForm(form.value, vendor.value)) {
+      const updatedVendor = await updateVendor(editingVendorId.value, payload)
+      vendors.value = vendors.value.map((vendor) =>
+        vendor.id === updatedVendor.id ? updatedVendor : vendor,
+      )
+    }
+
+    closeVendorForm()
   } catch (err) {
     if (err instanceof ApiError) {
       if (err.content) {
@@ -109,7 +165,7 @@ onMounted(loadVendors)
           </p>
         </div>
 
-        <div v-if="!showCreateForm">
+        <div v-if="!showVendorForm">
           <button
             type="button"
             class="inline-flex items-center justify-center rounded-2xl bg-stone-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-stone-700"
@@ -121,27 +177,22 @@ onMounted(loadVendors)
       </div>
     </header>
     <section
-      v-if="showCreateForm"
+      v-if="showVendorForm"
       class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h3 class="text-lg font-semibold tracking-tight text-stone-900">Create vendor</h3>
+          <h3 class="text-lg font-semibold tracking-tight text-stone-900">
+            {{ editingVendorId ? 'Edit vendor' : 'Create vendor' }}
+          </h3>
+
           <p class="mt-1 text-sm text-stone-500">
             Add a vendor before linking expenses and uploaded proofs.
           </p>
         </div>
-
-        <button
-          type="button"
-          class="text-sm font-medium text-stone-500 transition hover:text-stone-900"
-          @click="closeCreateForm"
-        >
-          Cancel
-        </button>
       </div>
 
-      <form class="mt-6 space-y-5" @submit.prevent="submitCreateVendor">
+      <form class="mt-6 space-y-5" @submit.prevent="submitVendorForm">
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block">
             <span class="mb-2 block text-sm font-medium text-stone-700">Name</span>
@@ -251,7 +302,7 @@ onMounted(loadVendors)
           <button
             type="button"
             class="rounded-2xl px-4 py-3 text-sm font-medium text-stone-600 transition hover:bg-stone-100 hover:text-stone-900"
-            @click="closeCreateForm"
+            @click="closeVendorForm"
           >
             Cancel
           </button>
@@ -333,6 +384,7 @@ onMounted(loadVendors)
                 Active
               </span>
             </div>
+            <button @click="openEditForm(vendor)">Edit</button>
           </div>
         </article>
       </div>

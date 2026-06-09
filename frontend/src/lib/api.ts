@@ -18,7 +18,7 @@ export class ApiError extends Error {
     message: string,
     public readonly content: Record<string, string> | null = null,
   ) {
-    super(message)
+    super(message.charAt(0).toUpperCase() + message.slice(1))
     this.name = 'ApiError'
   }
 }
@@ -59,7 +59,7 @@ function parseError(body: ApiErrorResponse | null) {
             return null
           }
           const message = Object.values(err.constraints ?? {})[0] ?? `Invalid ${err.field} value`
-          return [err.field, message]
+          return [err.field, message.charAt(0).toUpperCase() + message.slice(1)]
         })
         .filter(isEntry),
     )
