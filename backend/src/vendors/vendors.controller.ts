@@ -7,24 +7,33 @@ import { UpdateVendorDto } from './dto/update-vendor.dto';
 export class VendorsController {
   constructor(private readonly vendorsService: VendorsService) {}
 
+  // GET
   @Get()
   findAll() {
     return this.vendorsService.findAll();
+  }
+
+  @Get('archived')
+  findArchived() {
+    return this.vendorsService.findArchived();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.vendorsService.findOne(id);
   }
+  // POST
 
   @Post()
   create(@Body() body: CreateVendorDto) {
     return this.vendorsService.create(body);
   }
+  // PATCH
   @Patch(':id/archive')
   archive(@Param('id') id: string) {
     return this.vendorsService.archive(id);
   }
+
   @Patch(':id/restore')
   restore(@Param('id') id: string) {
     return this.vendorsService.restore(id);
