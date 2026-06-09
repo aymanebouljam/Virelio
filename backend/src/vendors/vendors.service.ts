@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client';
+import { Prisma, Vendor } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateVendorDto } from './dto/create-vendor.dto';
 import { UpdateVendorDto } from './dto/update-vendor.dto';
@@ -13,7 +13,7 @@ import { UpdateVendorDto } from './dto/update-vendor.dto';
 export class VendorsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  findAll(): Promise<Vendor[]> {
     return this.prisma.vendor.findMany({
       where: {
         archivedAt: null,
@@ -52,7 +52,18 @@ export class VendorsService {
       throw error;
     }
   }
-
+  findArchived(): Promise<Vendor[]> {
+    return this.prisma.vendor.findMany({
+      where: {
+        archivedAt: {
+          not: null,
+        },
+      },
+      orderBy: {
+        archivedAt: 'desc',
+      },
+    });
+  }
   async findOneIncludingArchived(id: string) {
     try {
       return await this.prisma.vendor.findUniqueOrThrow({
