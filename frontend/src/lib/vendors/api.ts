@@ -27,3 +27,7 @@ export async function fetchVendors() {
 export async function createVendor(input: CreateVendorInput) {
   return (await apiConfig({ path: 'vendors', method: 'POST', input })) as Vendor
 }
+
+export async function updateVendor(id: string, input: CreateVendorInput) {
+  return (await apiConfig({ path: 'vendors', method: 'PATCH', input, id })) as Vendor
+}
