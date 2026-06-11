@@ -68,7 +68,7 @@ describe('VendorsService', () => {
     );
 
     await expect(service.findOne(id)).rejects.toBeInstanceOf(NotFoundException);
-    expect(findUniqueOrThrowMock).toHaveBeenLastCalledWith({
+    expect(findUniqueOrThrowMock).toHaveBeenCalledWith({
       where: {
         id,
         archivedAt: null,
@@ -82,6 +82,25 @@ describe('VendorsService', () => {
     findUniqueOrThrowMock.mockResolvedValueOnce(vendor);
 
     await expect(service.findOneIncludingArchived(id)).resolves.toEqual(vendor);
+    expect(findUniqueOrThrowMock).toHaveBeenCalledWith({
+      where: {
+        id,
+      },
+    });
+  });
+
+  it('findOneIncludingArchived throws not found exception for non existent vendor id', async () => {
+    const id = '999';
+    findUniqueOrThrowMock.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('Record not found', {
+        code: 'P2025',
+        clientVersion: 'test',
+      }),
+    );
+
+    await expect(service.findOneIncludingArchived(id)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     expect(findUniqueOrThrowMock).toHaveBeenCalledWith({
       where: {
         id,
@@ -153,6 +172,68 @@ describe('VendorsService', () => {
     );
   });
 
+  it('update throws not found exception when vendor does not exist', async () => {
+    const input = { email: 'atlas@example.com' };
+    updateMock.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('Not Found', {
+        code: 'P2025',
+        clientVersion: 'test',
+      }),
+    );
+    await expect(service.update('1', input)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: '1' },
+      data: input,
+    });
+  });
+
+  it('update throws unique conflict error when a unique field already exists', async () => {
+    const input = { email: 'atlas@example.com' };
+    updateMock.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('Field already exists', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    );
+    await expect(service.update('1', input)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: '1' },
+      data: input,
+    });
+  });
+
+  it('archive returns archived vendor', async () => {
+    const vendor = {
+      id: '1',
+      name: 'Atlas',
+      archivedAt: null,
+    };
+
+    const archivedVendor = {
+      id: '1',
+      name: 'Atlas',
+      archivedAt: new Date(),
+    };
+
+    findUniqueOrThrowMock.mockResolvedValue(vendor);
+    updateMock.mockResolvedValue(archivedVendor);
+
+    const result = await service.archive('1');
+    expect(result).toEqual(archivedVendor);
+
+    expect(findUniqueOrThrowMock).toHaveBeenCalledWith({
+      where: { id: '1' },
+    });
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: '1' },
+      data: { archivedAt: expect.any(Date) as unknown },
+    });
+  });
+
   it('archive rejects already archived vendor', async () => {
     const archived = {
       id: '1',
@@ -163,6 +244,54 @@ describe('VendorsService', () => {
     findUniqueOrThrowMock.mockResolvedValue(archived);
 
     await expect(service.archive('1')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+
+    expect(findUniqueOrThrowMock).toHaveBeenCalledWith({
+      where: { id: '1' },
+    });
+
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('restore returns restored vendor', async () => {
+    const vendor = {
+      id: '1',
+      name: 'Atlas',
+      archivedAt: new Date(),
+    };
+
+    const restoredVendor = {
+      id: '1',
+      name: 'Atlas',
+      archivedAt: null,
+    };
+
+    findUniqueOrThrowMock.mockResolvedValue(vendor);
+    updateMock.mockResolvedValue(restoredVendor);
+
+    const result = await service.restore('1');
+    expect(result).toEqual(restoredVendor);
+
+    expect(findUniqueOrThrowMock).toHaveBeenCalledWith({
+      where: { id: '1' },
+    });
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: '1' },
+      data: { archivedAt: null },
+    });
+  });
+
+  it('restore rejects non archived vendor', async () => {
+    const activeVendor = {
+      id: '1',
+      name: 'Atlas',
+      archivedAt: null,
+    };
+
+    findUniqueOrThrowMock.mockResolvedValue(activeVendor);
+
+    await expect(service.restore('1')).rejects.toBeInstanceOf(
       ConflictException,
     );
 
