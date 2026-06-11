@@ -26,7 +26,7 @@ export class VendorsService {
 
   async findOne(id: string) {
     try {
-      return await this.prisma.vendor.findFirstOrThrow({
+      return await this.prisma.vendor.findUniqueOrThrow({
         where: {
           id,
           archivedAt: null,

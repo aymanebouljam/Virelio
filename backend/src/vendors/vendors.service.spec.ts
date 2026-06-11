@@ -1,6 +1,11 @@
-import { ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { VendorsService } from './vendors.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '../../generated/prisma/client';
 
 describe('VendorsService', () => {
   let service: VendorsService;
@@ -36,6 +41,38 @@ describe('VendorsService', () => {
     expect(findManyMock).toHaveBeenCalledWith({
       where: { archivedAt: null },
       orderBy: { createdAt: 'desc' },
+    });
+  });
+
+  it('findOne returns vendor by id', async () => {
+    const id = '1';
+    const vendor = { id, name: 'Atlas', archivedAt: null };
+    findUniqueOrThrowMock.mockResolvedValueOnce(vendor);
+
+    await expect(service.findOne(id)).resolves.toEqual(vendor);
+    expect(findUniqueOrThrowMock).toHaveBeenLastCalledWith({
+      where: {
+        id,
+        archivedAt: null,
+      },
+    });
+  });
+
+  it('findOne throws not found exception for non existent vendor id', async () => {
+    const id = '999';
+    findUniqueOrThrowMock.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('Record not found', {
+        code: 'P2025',
+        clientVersion: 'test',
+      }),
+    );
+
+    await expect(service.findOne(id)).rejects.toBeInstanceOf(NotFoundException);
+    expect(findUniqueOrThrowMock).toHaveBeenLastCalledWith({
+      where: {
+        id,
+        archivedAt: null,
+      },
     });
   });
 
