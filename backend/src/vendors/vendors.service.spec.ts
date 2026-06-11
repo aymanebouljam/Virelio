@@ -76,6 +76,77 @@ describe('VendorsService', () => {
     });
   });
 
+  it('findOneIncludingArchived returns vendor by id', async () => {
+    const id = '1';
+    const vendor = { id, name: 'Atlas', archivedAt: new Date() };
+    findUniqueOrThrowMock.mockResolvedValueOnce(vendor);
+
+    await expect(service.findOneIncludingArchived(id)).resolves.toEqual(vendor);
+    expect(findUniqueOrThrowMock).toHaveBeenCalledWith({
+      where: {
+        id,
+      },
+    });
+  });
+
+  it('findArchived returns archived vendors ordered by createdAt desc', async () => {
+    const vendors = [{ id: '1', name: 'Atlas', archivedAt: new Date() }];
+    findManyMock.mockResolvedValue(vendors);
+
+    const result = await service.findArchived();
+
+    expect(result).toEqual(vendors);
+    expect(findManyMock).toHaveBeenCalledWith({
+      where: {
+        archivedAt: {
+          not: null,
+        },
+      },
+      orderBy: { archivedAt: 'desc' },
+    });
+  });
+
+  it('create returns new stored vendor', async () => {
+    const input = { name: 'Atlas', email: 'atlas@example.com' };
+    const vendor = { ...input, id: '1', archivedAt: null };
+    createMock.mockResolvedValueOnce(vendor);
+    const result = await service.create(input);
+    expect(result).toEqual(vendor);
+    expect(createMock).toHaveBeenCalledWith({ data: input });
+  });
+
+  it('create throws unique conflict error when a unique field already exists', async () => {
+    const input = { name: 'Atlas', email: 'atlas@example.com' };
+
+    createMock.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('Field already exists', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    );
+
+    await expect(service.create(input)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(createMock).toHaveBeenCalledWith({ data: input });
+  });
+
+  it('update returns updated vendor', async () => {
+    const input = { email: 'atlas@example.com' };
+    const updatedVendor = {
+      id: '1',
+      name: 'Atlas',
+      email: 'atlas@example.com',
+      archivedAt: null,
+    };
+    updateMock.mockResolvedValueOnce(updatedVendor);
+    await expect(service.update('1', input)).resolves.toEqual(updatedVendor);
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: '1' },
+      data: input,
+    });
+  });
+
   it('update rejects empty body', async () => {
     await expect(service.update('vendor-id', {})).rejects.toBeInstanceOf(
       BadRequestException,
