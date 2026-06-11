@@ -5,6 +5,10 @@ export async function fetchVendors() {
   return (await apiConfig({ path: 'vendors' })) as Vendor[]
 }
 
+export async function fetchVendor(id: string) {
+  return (await apiConfig({ path: 'vendors', id })) as Vendor
+}
+
 export async function createVendor(input: VendorFormValues) {
   return (await apiConfig({ path: 'vendors', method: 'POST', input })) as Vendor
 }
