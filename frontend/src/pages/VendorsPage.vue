@@ -430,6 +430,13 @@ onMounted(loadVendors)
             </div>
 
             <div class="flex shrink-0 items-center gap-3">
+              <RouterLink
+                :to="{ name: 'vendorDetails', params: { id: vendor.id } }"
+                class="inline-flex items-center rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-600 transition hover:border-stone-300 hover:text-stone-900"
+              >
+                View
+              </RouterLink>
+
               <button
                 type="button"
                 class="inline-flex items-center rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-600 transition hover:border-stone-300 hover:text-stone-900"
