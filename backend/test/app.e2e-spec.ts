@@ -1,6 +1,6 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { Server } from 'node:http';
+import type { Server } from 'node:http';
 import { createTestApp } from './test-app';
 
 describe('App e2e', () => {
