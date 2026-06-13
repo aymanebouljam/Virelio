@@ -1,8 +1,8 @@
-import { INestApplication } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
-import { Server } from 'node:http';
+import type { Server } from 'node:http';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface TestApp {
