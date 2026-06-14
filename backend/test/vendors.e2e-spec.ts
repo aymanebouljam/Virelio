@@ -63,7 +63,8 @@ describe('Vendors e2e', () => {
       archivedAt: null,
     });
 
-    expect(createdVendor.id).toEqual(expect.any(String));
+    expect(typeof createdVendor.id).toBe('string');
+    expect(createdVendor.id.length).toBeGreaterThan(0);
     expect(Number.isNaN(Date.parse(createdVendor.createdAt))).toBe(false);
     expect(Number.isNaN(Date.parse(createdVendor.updatedAt))).toBe(false);
 
@@ -111,5 +112,55 @@ describe('Vendors e2e', () => {
     const vendorsList = listResponse.body as VendorResponse[];
 
     expect(vendorsList).toHaveLength(0);
+  });
+  it('refuses duplicate vendor creation and returns 409', async () => {
+    const inputA = {
+      name: 'Atlas Office Supplies',
+      email: 'contact@atlasoffice.com',
+      phone: '+212600000001',
+      website: 'https://atlasoffice.com',
+      notes: 'Office supplies vendor',
+    };
+
+    await request(http).post('/vendors').send(inputA).expect(201);
+
+    const inputB = {
+      name: 'Atlas Office Supplies',
+      email: 'hello@atlasoffice.ma',
+      phone: '+212612345678',
+      website: 'https://www.atlasoffice.ma',
+      notes: 'Preferred stationery and office equipment supplier',
+    };
+
+    const response = await request(http)
+      .post('/vendors')
+      .send(inputB)
+      .expect(409);
+
+    const error = response.body as ErrorResponse;
+
+    expect(error.message).toBe('Validation failed');
+    const nameError = error.errors.find(
+      (validationError) => validationError.field === 'name',
+    );
+
+    expect(nameError).toBeDefined();
+    if (!nameError) {
+      throw new Error('Expected validation error for "name"');
+    }
+
+    expect(nameError.constraints.isUnique).toBe(
+      'A vendor with this name already exists',
+    );
+
+    const listResponse = await request(http).get('/vendors').expect(200);
+
+    const vendorsList = listResponse.body as VendorResponse[];
+
+    expect(vendorsList).toHaveLength(1);
+    expect(vendorsList[0]).toMatchObject(inputA);
+    expect(vendorsList.some((vendor) => vendor.email === inputB.email)).toBe(
+      false,
+    );
   });
 });
