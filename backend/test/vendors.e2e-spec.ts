@@ -41,6 +41,54 @@ describe('Vendors e2e', () => {
     await app.close();
   });
 
+  // find
+  it('returns empty list initially', async () => {
+    const listResponse = await request(http).get('/vendors').expect(200);
+    expect(listResponse.body).toEqual([]);
+  });
+  it('returns active vendors only', async () => {
+    const inputA = {
+      name: 'Atlas Office Supplies',
+      email: 'contact@atlasoffice.com',
+      phone: '+212600000001',
+      website: 'https://atlasoffice.com',
+      notes: 'Office supplies vendor',
+    };
+
+    const createResponse = await request(http)
+      .post('/vendors')
+      .send(inputA)
+      .expect(201);
+
+    const createdVendor = createResponse.body as VendorResponse;
+    const archivedResponse = await request(http)
+      .patch(`/vendors/${createdVendor.id}/archive`)
+      .expect(200);
+
+    const archivedVendor = archivedResponse.body as VendorResponse;
+    expect(archivedVendor.name).toBe(inputA.name);
+    expect(archivedVendor.archivedAt).not.toBeNull();
+
+    const inputB = {
+      name: 'Northstar Business Solutions',
+      email: 'contact@northstar.ma',
+      phone: '+212661234567',
+      website: 'https://northstar.ma',
+      notes: 'Business equipment and workplace essentials supplier',
+    };
+
+    await request(http).post('/vendors').send(inputB).expect(201);
+
+    const listResponse = await request(http).get('/vendors').expect(200);
+    const vendorsList = listResponse.body as VendorResponse[];
+    expect(vendorsList).toHaveLength(1);
+    expect(vendorsList[0]).toMatchObject(inputB);
+    expect(vendorsList[0].archivedAt).toBeNull();
+    expect(vendorsList.some((vendor) => vendor.name === inputA.name)).toBe(
+      false,
+    );
+  });
+
   // create
   it('creates a vendor and returns it from GET /vendors', async () => {
     const input = {
