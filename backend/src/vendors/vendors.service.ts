@@ -2,12 +2,15 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
-import { Prisma, Vendor } from '../../generated/prisma/client';
+import { Prisma, type Vendor } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateVendorDto } from './dto/create-vendor.dto';
-import { UpdateVendorDto } from './dto/update-vendor.dto';
+import type { CreateVendorDto } from './dto/create-vendor.dto';
+import type { UpdateVendorDto } from './dto/update-vendor.dto';
+import {
+  throwPrismaConflict,
+  throwPrismaNotFound,
+} from '../common/prisma/prisma-error.util';
 
 @Injectable()
 export class VendorsService {
@@ -37,17 +40,7 @@ export class VendorsService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2025'
       ) {
-        throw new NotFoundException({
-          message: 'Resource not found',
-          errors: [
-            {
-              field: 'id',
-              constraints: {
-                exists: 'No active vendor with this id exists',
-              },
-            },
-          ],
-        });
+        throwPrismaNotFound('Vendor');
       }
       throw error;
     }
@@ -76,17 +69,7 @@ export class VendorsService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2025'
       ) {
-        throw new NotFoundException({
-          message: 'Resource not found',
-          errors: [
-            {
-              field: 'id',
-              constraints: {
-                exists: 'No vendor with this id exists',
-              },
-            },
-          ],
-        });
+        throwPrismaNotFound('Vendor');
       }
       throw error;
     }
@@ -102,17 +85,7 @@ export class VendorsService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        throw new ConflictException({
-          message: 'Validation failed',
-          errors: [
-            {
-              field: 'name',
-              constraints: {
-                isUnique: 'A vendor with this name already exists',
-              },
-            },
-          ],
-        });
+        throwPrismaConflict(error, 'vendor');
       }
       throw error;
     }
@@ -140,30 +113,10 @@ export class VendorsService {
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
-          throw new NotFoundException({
-            message: 'Resource not found',
-            errors: [
-              {
-                field: 'id',
-                constraints: {
-                  exists: 'No vendor with this id exists',
-                },
-              },
-            ],
-          });
+          throwPrismaNotFound('Vendor');
         }
         if (error.code === 'P2002') {
-          throw new ConflictException({
-            message: 'Validation failed',
-            errors: [
-              {
-                field: 'name',
-                constraints: {
-                  isUnique: 'A vendor with this name already exists',
-                },
-              },
-            ],
-          });
+          throwPrismaConflict(error, 'vendor');
         }
       }
       throw error;
